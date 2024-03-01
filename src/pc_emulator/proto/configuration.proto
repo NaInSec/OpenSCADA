@@ -1,0 +1,302 @@
+syntax = "proto2";
+
+package pc_specification;
+
+enum DataTypeCategory {
+    //List of Elementary data types
+    BOOL = 0;   // Datatype name- BOOL
+    BYTE = 1;   // Datatype name- BYTE
+    WORD = 2;   // Datatype name- WORD
+    DWORD = 3;  // Datatype name- DWORD
+    LWORD = 4;  // Datatype name- LWORD
+    CHAR = 5;   // Datatype name- CHAR
+ 
+    USINT = 6;  // Datatype name- USINT
+    SINT = 7;   // Datatype name- SINT
+    UINT = 8;   // Datatype name- UINT
+    INT = 9;    // Datatype name- INT
+    UDINT = 10; // Datatype name- UDINT
+    DINT = 11;  // Datatype name- DINT
+    ULINT = 12; // Datatype name- ULINT
+    LINT = 13;  // Datatype name- LINT
+
+    REAL = 14;  // Datatype name- REAL
+    LREAL = 15; // Datatype name- LREAL
+
+    TIME = 16;  // Datatype name- TIME
+    DATE = 17;  // Datatype name- DATE
+    TIME_OF_DAY = 18;   // Datatype name- TOD
+    DATE_AND_TIME = 19; // Datatype name- DT
+
+    // Non elementary datatypes
+    DERIVED = 20;
+    POU = 21;
+    ARRAY = 22; //used for internal purposes only
+    NOT_ASSIGNED = 23; // used for internal purposes only
+}
+
+enum FieldInterfaceType {
+    VAR_INPUT = 0;
+    VAR_OUTPUT = 1;
+    VAR_IN_OUT = 2;
+    VAR = 3;
+    VAR_TEMP = 4;
+    VAR_EXTERNAL = 5;
+    VAR_GLOBAL = 6;
+    VAR_ACCESS = 7;
+    VAR_EXPLICIT_STORAGE = 8;
+    NA = 9;
+}
+
+enum FieldQualifiers {
+    R_EDGE = 0;
+    F_EDGE = 1;
+    READ_ONLY = 2;
+    READ_WRITE = 3;
+    NONE = 4;
+}
+
+enum MemType {
+    INPUT_MEM = 0;
+    OUTPUT_MEM = 1;
+    RAM_MEM = 2;
+}
+
+enum TaskType {
+    INTERVAL = 0;
+    INTERRUPT = 1;
+}
+
+enum PoUType {
+    FC = 0;
+    FB = 1;
+    PROGRAM = 2;
+    NOA = 3;
+}
+
+enum LogLevels {
+    LOG_NONE = 0;
+    LOG_NOTICE = 1;
+    LOG_INFO = 2;
+    LOG_ERROR = 3;
+    LOG_VERBOSE = 4;
+};
+
+// Can either be specified using the 3 fields
+// mem_type, byte_offset, bit_offset or compactly as a string
+message FieldStorageSpec {
+    optional MemType mem_type = 1;
+    optional int64 byte_offset = 2;
+    optional int32 bit_offset = 3;
+    
+    optional string full_storage_spec = 4;
+}
+
+// DataTypeField may only be specified for DataTypes where datatype_category
+// is in {POU, DERIVED}
+message DataTypeField {
+    required string field_name = 1;
+    required string field_datatype_name = 2;
+    optional double range_min = 3;
+    optional double range_max = 4;
+
+    // May only be specified if intf_type is not in 
+    // {VAR_EXPLICIT_STORAGE, VAR_ACCESS, VAR_EXTERNAL}
+    optional string initial_value = 5;
+
+    // must only be specified if this field is an array
+    optional int32 dimension_1 = 6;
+
+    // must only be specified if this field is an 2d-array 
+    optional int32 dimension_2 = 7; 
+
+    // may only be specified if parent datatype_category is POU.
+    // It can be equal to VAR_EXPLICIT_STORAGE or VAR_ACCESS only 
+    // if pou_type = PROGRAM
+    optional FieldInterfaceType intf_type = 8 [default = NA];
+
+    // must be specified only if intf_type in 
+    // {VAR_EXPLICIT_STORAGE, VAR_ACCESS}
+    optional FieldStorageSpec field_storage_spec = 9; 
+
+    // May only be specified (optionally) for VAR_INPUT, VAR_EXPLICIT_STORAGE 
+    // and VAR_ACCESS intf_types. Otherwise it is ignored.
+    //
+    // May equal R_EDGE/F_EDGE only iff intf_type is 
+    // VAR_INPUT/VAR_EXPLICIT_STORAGE and field_datatype_name is BOOL.
+    // Otherwise it is ignored.
+    //
+    // May equal READ_ONLY/READ_WRITE only iff intf_type is VAR_ACCESS.
+    // Otherwise it is ignored.
+    optional FieldQualifiers field_qualifier = 10 [default=NONE];
+}
+
+
+// DataTypeSpec may only be specified for DataTypes where datatype_category 
+// is not in {POU, DERIVED, ARRAY, NOT_ASSIGNED}
+message DataTypeSpec {
+    optional double range_min = 1;
+    optional double range_max = 2;
+    optional string initial_value = 3;
+
+    // Must only be specified if this datatype is supposed to be a typedef of 
+    // an ARRAY of [datatype_category] i.e if datatype_category is INT and 
+    // if datatype_spec with dimension_1 = 10 is specified, then this datatype 
+    // is a typedef of an integer array of size 10 (ARRAY[10] of INT)
+    optional int32 dimension_1 = 4; // must only be specified if this datatype is 
+                                    // typedeffing an array
+    optional int32 dimension_2 = 5; // must only be specified if this datatype is
+                                    // typedeffing a 2d-array
+
+}
+
+message PoUCode {
+    repeated string insn = 1;
+}
+
+message DataType {
+    required string name = 1;
+    // datatype_category cannot be in  {ARRAY, NOT_ASSIGNED}
+    // This datatype will be treated as a typedef of an array 
+    // if dimensions are specified in datatype_spec
+    optional DataTypeCategory datatype_category = 2 [default =POU];
+
+    // will be used only if datatype_category is POU
+    optional PoUType pou_type = 3 [default = PROGRAM]; 
+
+    // must be specified only if datatype_category is POU or DERIVED
+    repeated DataTypeField datatype_field = 4;
+
+    // datatype_spec may only be specified if datatype_category is not in 
+    // {POU, DERIVED, ARRAY, NOT_ASSIGNED}
+    optional DataTypeSpec datatype_spec = 5;
+
+    // can only be specified if datatype_category is POU
+    optional PoUCode code_body = 6;
+}
+
+
+// Describes a SFB and time to execute the SFB
+message SFBSpecification {
+    required string sfb_name = 1;
+    required int64 mu_exec_time_ns = 2;
+    required int64 sigma_exec_time_ns = 3;
+}
+
+// Describes a SFC and time to execute the SFC
+message SFCSpecification {
+    required string sfc_name = 1;
+    required int64 mu_exec_time_ns = 2;
+    required int64 sigma_exec_time_ns = 3;
+}
+
+// Describes an IL instruction and time to execute the instruction
+message InstructionSpecification {
+    required string ins_name = 1;
+    required int64 mu_exec_time_ns = 2;
+    required int64 sigma_exec_time_ns = 3;
+}
+
+// The time period of the interval task
+message IntervalTaskParams {
+    required int64 interval_ms = 1;
+}
+
+// The name of the variable which triggers an interrupt task
+message InterruptTaskParams {
+    required string trigger_variable_field = 1;
+}
+
+// Specifies an interval task, its priority and cycle time
+message IntervalTaskSpecification {
+    required string task_name = 1;
+    required int32 priority = 2;
+    required IntervalTaskParams interval_task_params = 3;
+}
+
+// Specifies an interrupt task, its priority and trigger variable
+message InterruptTaskSpecification {
+    required string task_name = 1;
+    required int32 priority = 2;
+    required InterruptTaskParams interrupt_task_params = 3;
+}
+
+message ProgramVariableInitialization {
+    required string pou_variable_field_name = 1;
+    required string mapped_variable_field_name = 2; 
+}
+
+message ProgramSpecification {
+    // Name of the program/FB
+    required string program_name = 1;
+
+    // This is also usually the same as the name of the program/FB
+    required string pou_variable_type = 2;
+
+    // Name of the task associated with this program/FB. 
+    // A program/FB can be associated with atmost one task.
+    required string task_name = 3;
+
+    // Specifies how the VAR_INPUTs, VAR_INOUTs of the program/FB are
+    // initialized before running the program. Also specifies where the OUTPUTs
+    // of the program are stored.
+    repeated ProgramVariableInitialization initialization_maps = 4;
+}
+
+// Describes each CPU of the PLC
+message ResourceSpecification {
+
+    // Name associated with the CPU
+    required string resource_name = 1;
+
+    // Input memory associated with this CPU
+    optional int64 input_mem_size_bytes = 2;
+
+    // Output memory associated with this CPU
+    optional int64 output_mem_size_bytes = 3;
+
+    // Global variables specific to all POUs within this CPU
+    optional DataType resource_global_var = 4;
+
+    // Definition of all Functions, Function Blocks and Programs associated with
+    // this CPU
+    repeated DataType pou_var = 5;
+
+    // Specification of a single interval task. Only one interval task is 
+    // supported in this emulator as of now.
+    optional IntervalTaskSpecification interval_task = 7;
+
+    // Specification of interrupt tasks
+    repeated InterruptTaskSpecification interrupt_tasks = 8;
+
+    // Mapping POUs with tasks.
+    repeated ProgramSpecification programs = 9;
+    
+}
+
+// These are created by the emulator and used internally
+message MachineSpecification {
+    required int32 num_cpus = 1;
+    optional int64 ram_mem_size_bytes = 2;
+    // random number seed
+    optional int64 random_number_seed = 3;
+    repeated InstructionSpecification ins_spec = 4;
+    repeated SFCSpecification sfc_spec = 5;
+    repeated SFBSpecification sfb_spec = 6;
+    repeated ResourceSpecification resource_spec = 7;
+}
+
+// These are created by the emulator and used internally
+message Specification {
+    optional string config_name = 1;
+    optional LogLevels log_level = 2;
+    optional string log_file_path = 3;
+    required int32 run_time_secs = 4;
+    repeated DataType datatype_declaration = 5;
+    optional DataType config_global_pou_var = 6;
+    optional DataType config_access_pou_var =7;
+    required MachineSpecification machine_spec = 8;
+}
+
+
+

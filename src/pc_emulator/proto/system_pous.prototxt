@@ -1,0 +1,449 @@
+# Inbuilt SFB definitions. For reference/details about each SFB's
+# functionality see docs/reference. This file contains the implementation
+# of all SFBs described in the book
+
+# SR Flip flop
+system_pou {
+    name: "SR"
+    pou_type: FB
+    datatype_field {
+        field_name: "S1"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "R"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "Q1"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_OUTPUT
+    }
+
+    code_body {
+        insn: "NOT R"
+        insn: "AND Q1"
+        insn: "OR S1"
+        insn: "ST Q1"
+    }
+}
+
+# RS flip flop
+system_pou {
+    name: "RS"
+    pou_type: FB
+    datatype_field {
+        field_name: "S"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "R1"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "Q1"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_OUTPUT
+    }
+
+    code_body {
+        insn: "LD S"
+        insn: "OR Q1"
+        insn: "ANDN R1"
+        insn: "ST Q1"
+    }
+}
+
+# Rising edge detection
+system_pou {
+    name: "R_TRIG"
+    pou_type: FB
+    datatype_field {
+        field_name: "CLK"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "Q"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_OUTPUT
+    }
+    datatype_field {
+        field_name: "MEM"
+        field_datatype_name: "BOOL"
+        intf_type: VAR
+    }
+
+
+    code_body {
+        insn: "NOT MEM"
+        insn: "AND CLK"
+        insn: "ST Q"
+        insn: "LD CLK"
+        insn: "ST MEM"
+    }
+}
+
+# Falling edge detection
+system_pou {
+    name: "F_TRIG"
+    pou_type: FB
+    datatype_field {
+        field_name: "CLK"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "Q"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_OUTPUT
+    }
+    datatype_field {
+        field_name: "MEM"
+        field_datatype_name: "BOOL"
+        initial_value: "1"
+        intf_type: VAR
+    }
+
+    code_body {
+        insn: "NOT MEM"
+        insn: "ANDN CLK"
+        insn: "ST Q"
+        insn: "NOT CLK"
+        insn: "ST MEM"
+    }
+}
+
+# Up Counter
+system_pou {
+    name: "CTU"
+    pou_type: FB
+    datatype_field {
+        field_name: "CU"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+        field_qualifier: R_EDGE
+    }
+    datatype_field {
+        field_name: "R"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "PV"
+        field_datatype_name: "INT"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "Q"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_OUTPUT
+    }
+    datatype_field {
+        field_name: "CV"
+        field_datatype_name: "INT"
+        intf_type: VAR_OUTPUT
+    }
+
+    code_body {
+        insn: "LD R"
+        insn: "JMPCN else"
+        insn: "LD 0"
+        insn: "ST CV"
+        insn: "JMP end"
+        insn: "else: LD CU"
+        insn: "JMPCN end"
+        insn: "LD PV"
+        insn: "GT CV"
+        insn: "JMPCN end"
+        insn: "LD CV"
+        insn: "ADD 1"
+        insn: "ST CV"
+        insn: "end: LD CV"
+        insn: "GE PV"
+        insn: "ST Q"
+
+    }
+}
+
+# Down counter
+system_pou {
+    name: "CTD"
+    pou_type: FB
+    datatype_field {
+        field_name: "CD"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+        field_qualifier: R_EDGE
+    }
+    datatype_field {
+        field_name: "LD"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "PV"
+        field_datatype_name: "INT"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "Q"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_OUTPUT
+    }
+    datatype_field {
+        field_name: "CV"
+        field_datatype_name: "INT"
+        intf_type: VAR_OUTPUT
+    }
+
+    code_body {
+        insn: "LD LD"
+        insn: "JMPCN else"
+        insn: "LD PV"
+        insn: "ST CV"
+        insn: "JMP end"
+        insn: "else: LD CD"
+        insn: "JMPCN end"
+        insn: "LD CV"
+        insn: "GT 0"
+        insn: "JMPCN end"
+        insn: "LD CV"
+        insn: "SUB 1"
+        insn: "ST CV"
+        insn: "end: LD CV"
+        insn: "LE 0"
+        insn: "ST Q"
+    }
+}
+
+# Up-down counter
+system_pou {
+    name: "CTUD"
+    pou_type: FB
+    datatype_field {
+        field_name: "CU"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+        field_qualifier: R_EDGE
+    }
+    datatype_field {
+        field_name: "CD"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+        field_qualifier: R_EDGE
+    }
+    datatype_field {
+        field_name: "R"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "LD"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "PV"
+        field_datatype_name: "INT"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "CU_Flag"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_TEMP
+    }
+    datatype_field {
+        field_name: "CD_Flag"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_TEMP
+    }
+    datatype_field {
+        field_name: "QU"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_OUTPUT
+    }
+    datatype_field {
+        field_name: "QD"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_OUTPUT
+    }
+    datatype_field {
+        field_name: "CV"
+        field_datatype_name: "INT"
+        intf_type: VAR_OUTPUT
+    }
+    code_body {
+        insn: "LD CU"
+        insn: "ST CU_Flag"
+        insn: "LD CD"
+        insn: "ST CD_Flag"
+        insn: "LD R"
+        insn: "JMPCN else1"
+        insn: "LD 0"
+        insn: "ST CV"
+        insn: "JMP end"
+        insn: "else1: LD LD"
+        insn: "JMPCN else2"
+        insn: "LD PV"
+        insn: "ST CV"
+        insn: "JMP end"
+        insn: "else2: LD CD"
+        insn: "AND CU"
+        insn: "NOT"
+        insn: "JMPCN end"
+        insn: "LD PV"
+        insn: "GT CV"
+        insn: "AND CU"
+        insn: "JMPCN else"
+        insn: "LD CV"
+        insn: "ADD 1"
+        insn: "ST CV"
+        insn: "JMP end"
+        insn: "else: LD CV"
+        insn: "GT 0"
+        insn: "AND CD"
+        insn: "JMPCN end"
+        insn: "LD CV"
+        insn: "SUB 1"
+        insn: "ST CV"
+        insn: "end: LD CV"
+        insn: "GE PV"
+        insn: "ST QU"
+        insn: "LD CV"
+        insn: "LE 0"
+        insn: "ST QD"
+    }
+}
+
+# Trigger Pulse
+system_pou {
+    name: "TP"
+    pou_type: FB
+    datatype_field {
+        field_name: "IN"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "PT"
+        field_datatype_name: "TIME"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "Q"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_OUTPUT
+    }
+    datatype_field {
+        field_name: "ET"
+        field_datatype_name: "TIME"
+        intf_type: VAR_OUTPUT
+    }
+    datatype_field {
+        field_name: "TIMER_STARTED"
+        field_datatype_name: "BOOL"
+        intf_type: VAR
+    }
+    datatype_field {
+        field_name: "TO_STOP"
+        field_datatype_name: "BOOL"
+        intf_type: VAR
+    }
+    datatype_field {
+        field_name: "START_TIME"
+        field_datatype_name: "TIME"
+        intf_type: VAR
+    }
+    datatype_field {
+        field_name: "IN_PREV"
+        field_datatype_name: "BOOL"
+        intf_type: VAR
+    }
+}
+
+# On- Timer
+system_pou {
+    name: "TON"
+    pou_type: FB
+    datatype_field {
+        field_name: "IN"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "PT"
+        field_datatype_name: "TIME"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "Q"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_OUTPUT
+    }
+    datatype_field {
+        field_name: "ET"
+        field_datatype_name: "TIME"
+        intf_type: VAR_OUTPUT
+    }
+    datatype_field {
+        field_name: "START_TIME"
+        field_datatype_name: "TIME"
+        intf_type: VAR
+    }
+    datatype_field {
+        field_name: "TIMER_STARTED"
+        field_datatype_name: "BOOL"
+        intf_type: VAR
+    }
+    datatype_field {
+        field_name: "IN_PREV"
+        field_datatype_name: "BOOL"
+        intf_type: VAR
+    }
+}
+
+# Off- Timer
+system_pou {
+    name: "TOF"
+    pou_type: FB
+    datatype_field {
+        field_name: "IN"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "PT"
+        field_datatype_name: "TIME"
+        intf_type: VAR_INPUT
+    }
+    datatype_field {
+        field_name: "Q"
+        field_datatype_name: "BOOL"
+        intf_type: VAR_OUTPUT
+    }
+    datatype_field {
+        field_name: "ET"
+        field_datatype_name: "TIME"
+        intf_type: VAR_OUTPUT
+    }
+    datatype_field {
+        field_name: "START_TIME"
+        field_datatype_name: "TIME"
+        intf_type: VAR
+    }
+    datatype_field {
+        field_name: "TIMER_STARTED"
+        field_datatype_name: "BOOL"
+        intf_type: VAR
+    }
+    datatype_field {
+        field_name: "IN_PREV"
+        field_datatype_name: "BOOL"
+        intf_type: VAR
+    }
+}
